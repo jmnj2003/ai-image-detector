@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Content Detector</title>
+<style>
+  :root {
+    --bg: #0b0e11;
+    --panel: #12161b;
+    --line: #232830;
+    --text: #e7ebee;
+    --muted: #7c8794;
+    --accent: #4fd1c5;
+    --accent-dim: #2b7d75;
+    --warn: #e0a64c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 80px; }
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 40px; line-height: 1.5; max-width: 52ch; }
+
+  .drop {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .drop:hover, .drop.dragover { border-color: var(--accent-dim); background: #141a1f; }
+  .drop input { display: none; }
+  .drop p { margin: 0; color: var(--muted); font-size: 14px; }
+  .drop .pick { color: var(--accent); text-decoration: underline; cursor: pointer; }
+
+  .preview-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-top: 28px;
+  }
+  .preview-row img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  .result { flex: 1; min-width: 0; }
+  .headline { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .headline .pct {
+    font-size: 40px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .headline .label { color: var(--muted); font-size: 14px; }
+  .verdict { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+  .verdict strong { color: var(--text); }
+
+  .bar-row { margin-bottom: 10px; }
+  .bar-row .top {
+    display: flex; justify-content: space-between;
+    font-size: 13px; margin-bottom: 4px;
+  }
+  .bar-row .name { color: var(--text); }
+  .bar-row .val { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar-track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+
+  .attribution-title {
+    font-size: 12px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .04em; margin: 22px 0 12px;
+  }
+  .note {
+    font-size: 12.5px; color: var(--muted); margin-top: 18px;
+    line-height: 1.5; border-top: 1px solid var(--line); padding-top: 14px;
+  }
+
+  .status { font-size: 14px; color: var(--muted); margin-top: 16px; }
+  .status.error { color: #e0745c; }
+  .spinner {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--line); border-top-color: var(--accent);
+    display: inline-block; vertical-align: -2px; margin-right: 8px;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 520px) {
+    .preview-row { flex-direction: column; }
+    .preview-row img { width: 100%; height: 200px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>AI Content Detector</h1>
+    <p class="sub">Upload an image to check whether it was AI-generated, and if so, which generator it most resembles.</p>
+
+    <label class="drop" id="drop">
+      <input type="file" id="fileInput" accept="image/*">
+      <p>Drag an image here, or <span class="pick">choose a file</span></p>
+    </label>
+
+    <div id="status"></div>
+
+    <div class="preview-row" id="previewRow" style="display:none">
+      <img id="previewImg" alt="Uploaded preview">
+      <div class="result" id="result"></div>
+    </div>
+  </div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const previewRow = document.getElementById('previewRow');
+const previewImg = document.getElementById('previewImg');
+const resultEl = document.getElementById('result');
+const statusEl = document.getElementById('status');
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.type.startsWith('image/')) {
+    statusEl.innerHTML = '<div class="status error">That doesn\'t look like an image file.</div>';
+    return;
+  }
+  previewImg.src = URL.createObjectURL(file);
+  previewRow.style.display = 'flex';
+  resultEl.innerHTML = '';
+  statusEl.innerHTML = '<div class="status"><span class="spinner"></span>Analysing...</div>';
+
+  const form = new FormData();
+  form.append('file', file);
+
+  fetch('/predict', { method: 'POST', body: form })
+    .then(r => {
+      if (!r.ok) throw new Error('Server error (' + r.status + ')');
+      return r.json();
+    })
+    .then(renderResult)
+    .catch(err => {
+      statusEl.innerHTML = '<div class="status error">Couldn\'t analyse that image: ' + err.message + '</div>';
+    });
+}
+
+function renderResult(data) {
+  statusEl.innerHTML = '';
+  const pct = Math.round(data.p_ai * 100);
+  const verdict = data.is_ai ? 'Likely AI-generated' : 'Likely real';
+
+  let html = `
+    <div class="headline">
+      <div class="pct">${pct}%</div>
+      <div class="label">estimated probability of AI generation</div>
+    </div>
+    <div class="verdict"><strong>${verdict}</strong> &mdash; model estimate, not a certainty.</div>
+  `;
+
+  if (data.attribution) {
+    const probs = data.attribution.probabilities;
+    const entries = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+    html += '<div class="attribution-title">Likely source</div>';
+    for (const [name, p] of entries) {
+      const w = Math.round(p * 100);
+      html += `
+        <div class="bar-row">
+          <div class="top"><span class="name">${labelName(name)}</span><span class="val">${w}%</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${w}%"></div></div>
+        </div>`;
+    }
+    const guess = data.attribution.top_guess === 'unknown'
+      ? "The model isn't confident enough to name a specific generator."
+      : `Best guess: <strong>${labelName(data.attribution.top_guess)}</strong>.`;
+    html += `<div class="note">${guess} These are statistical estimates from a model trained on a limited set of generators &mdash; they can be wrong, especially for generators the model has never seen.</div>`;
+  } else if (data.is_ai) {
+    html += '<div class="note">Source attribution isn\'t available yet for this deployment.</div>';
+  } else {
+    html += '<div class="note">Source attribution only runs on images judged likely to be AI-generated.</div>';
+  }
+
+  resultEl.innerHTML = html;
+}
+
+function labelName(key) {
+  const names = { google: 'Google (Gemini / Imagen)', openai: 'OpenAI (ChatGPT image tools)',
+                  bytedance: 'ByteDance (Seedream)', opensource: 'Open-source (Stable Diffusion / FLUX)' };
+  return names[key] || key;
+}
+</script>
+</body>
+</html>

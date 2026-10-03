@@ -1,0 +1,15 @@
+# data prep
+pillow
+
+# training
+torch
+torchvision
+transformers
+scikit-learn
+joblib
+numpy
+
+# serving
+fastapi
+uvicorn[standard]
+python-multipart
