@@ -7,8 +7,6 @@ Upload an image and get two answers:
 
 Built with PyTorch, CLIP and FastAPI. The most useful part of this repo is not the final score but the record of *why* the first versions failed on unseen images and what fixed each failure (see [What I learned](#what-i-learned-from-3-to-64)).
 
-<!-- Add a demo GIF or screenshot here: ![demo](docs/demo.gif) -->
-
 ---
 
 ## Results
@@ -70,34 +68,6 @@ flowchart LR
 - **Three candidates per stage.** CLIP + logistic regression, CLIP + MLP, and a fine-tuned ResNet-50 are trained every run; the winner is picked on the selection half of the self-made set.
 
 ---
-
-## What I learned: from 3% to 64%
-
-Stage 2 accuracy on the self-made images, run by run. The early runs used the whole self-made set for both choosing and scoring, so they are not strictly comparable to the final number, but the trend and the causes are the point.
-
-| Change | Cross-domain accuracy | What it showed |
-|---|---|---|
-| First version | 3.0% | Worse than random guessing: the model was confidently wrong |
-| Re-encode every image the same way | 8.0% | Part of the problem was file format, not content (stage 1 also went from 67% to 88%) |
-| Add real training data for every class | 40.0% | One class had almost no training data of its own |
-| Cap the biggest class to match the others | 34.7% | Throwing data away didn't help; the small classes were the real bottleneck |
-| Add ~1,500 GPT-4o images | 44.7% | More data for the weakest class helped it directly |
-| Add prompt-matched images from older model versions | 33.3% | Old versions (DALL-E 3, Imagen 3) blurred each company's signal |
-| Specific-model labels + native-resolution crops + robustness augmentation | **64.0%** | Biggest jump; SDXL became reliably recognisable |
-
-Two evaluation mistakes I also caught and fixed: choosing the model and reporting the score on the same 150 images, and splitting the self-made set into halves with different content types (the 50 prompts are grouped by type). The final split uses odd/even prompt numbers so both halves cover every content type.
-
----
-
-## Limitations
-
-- **OpenAI is weak (6/25).** The ChatGPT images I generated look different from every OpenAI source in the training data (GPT-4o, DALL-E 3, a small gpt-image-1 set). The model only recognises generators that are represented in training.
-- **ByteDance has no cross-domain test.** I couldn't confirm which model Dola uses, so its 50 images are kept as an unlabelled probe and not scored.
-- **Small test set.** 75 test images give a margin of roughly ±11 percentage points on the overall score, and more for each company (25 images each).
-- **Not a forensic tool.** Outputs are statistical estimates. They should not be used as evidence about any specific image.
-
----
-
 ## Repository layout
 
 ```
