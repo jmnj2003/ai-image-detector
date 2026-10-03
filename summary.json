@@ -1,0 +1,128 @@
+{
+  "best_model": "resnet_finetune",
+  "label_names": [
+    "dalle-3",
+    "flux",
+    "gpt-4o",
+    "gpt-image-1",
+    "imagen",
+    "nano-banana",
+    "sd3",
+    "sdxl",
+    "seedream-3",
+    "seedream-4.5"
+  ],
+  "label_to_group": {
+    "seedream-3": "bytedance",
+    "seedream-4.5": "bytedance",
+    "imagen": "google",
+    "nano-banana": "google",
+    "dalle-3": "openai",
+    "gpt-4o": "openai",
+    "gpt-image-1": "openai",
+    "flux": "opensource",
+    "sd3": "opensource",
+    "sdxl": "opensource"
+  },
+  "group_names": [
+    "bytedance",
+    "google",
+    "openai",
+    "opensource"
+  ],
+  "feature_dim": 768,
+  "clip_model_id": "openai/clip-vit-large-patch14",
+  "resnet_arch": "resnet50",
+  "resnet_input": "native_multicrop",
+  "val": {
+    "clip_logreg": {
+      "val_acc": 0.8353457738748628,
+      "val_f1": 0.8345942488191815,
+      "xdomain_val_acc": 0.29333333333333333
+    },
+    "clip_mlp": {
+      "val_acc": 0.8715697036223929,
+      "val_f1": 0.8678245125899876,
+      "xdomain_val_acc": 0.32
+    },
+    "resnet_finetune": {
+      "val_acc": 0.9549945115257958,
+      "val_f1": 0.9472481705129511,
+      "xdomain_val_acc": 0.6533333333333333
+    }
+  },
+  "test": {
+    "n": 911,
+    "acc": 0.9571899012074643,
+    "macro_f1_over_true_groups": 0.9598005971529485,
+    "specific_model_acc": 0.9538968166849616,
+    "confusion": {
+      "bytedance": {
+        "bytedance": 150
+      },
+      "google": {
+        "google": 233,
+        "opensource": 5,
+        "openai": 1,
+        "bytedance": 1
+      },
+      "openai": {
+        "openai": 253,
+        "opensource": 8,
+        "bytedance": 2,
+        "google": 7
+      },
+      "opensource": {
+        "opensource": 236,
+        "openai": 6,
+        "bytedance": 2,
+        "google": 7
+      }
+    }
+  },
+  "cross_domain_val": {
+    "n": 75,
+    "acc": 0.6533333333333333,
+    "macro_f1_over_true_groups": 0.6226380707744893,
+    "confusion": {
+      "google": {
+        "google": 23,
+        "openai": 2
+      },
+      "openai": {
+        "opensource": 6,
+        "google": 10,
+        "openai": 4,
+        "bytedance": 5
+      },
+      "opensource": {
+        "opensource": 22,
+        "bytedance": 2,
+        "google": 1
+      }
+    }
+  },
+  "cross_domain_test": {
+    "n": 75,
+    "acc": 0.64,
+    "macro_f1_over_true_groups": 0.6055137844611528,
+    "confusion": {
+      "google": {
+        "google": 21,
+        "openai": 2,
+        "opensource": 2
+      },
+      "openai": {
+        "google": 9,
+        "opensource": 9,
+        "openai": 6,
+        "bytedance": 1
+      },
+      "opensource": {
+        "google": 2,
+        "opensource": 21,
+        "openai": 2
+      }
+    }
+  }
+}
